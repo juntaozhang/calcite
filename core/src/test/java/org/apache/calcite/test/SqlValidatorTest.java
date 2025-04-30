@@ -713,7 +713,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("coalesce('a','b')").ok();
     expr("coalesce('a','b','c')")
         .columnType("CHAR(1) NOT NULL");
-
+    sql("SELECT COALESCE(DATE '2020-01-01', '2020-01-02')").ok();
+    sql("SELECT COALESCE(DATE '2020-01-01', '2020-01-02')")
+        .withValidatorConfig(c -> c.withCallRewrite(false))
+        .ok();
     sql("select COALESCE(mgr, 12) as m from EMP")
         .columnType("INTEGER NOT NULL");
   }

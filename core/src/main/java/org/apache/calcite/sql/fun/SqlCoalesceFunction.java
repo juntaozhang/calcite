@@ -16,20 +16,28 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * The <code>COALESCE</code> function.
@@ -79,5 +87,31 @@ public class SqlCoalesceFunction extends SqlFunction {
     SqlNode elseExpr = Util.last(operands);
     assert call.getFunctionQuantifier() == null;
     return SqlCase.createSwitched(pos, null, whenList, thenList, elseExpr);
+  }
+
+  @Override public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    return inferReturnType(opBinding, () -> {
+      if (opBinding instanceof SqlCallBinding) {
+        SqlCallBinding callBinding = (SqlCallBinding) opBinding;
+        if (callBinding.isTypeCoercionEnabled()) {
+          List<RelDataType> argTypes = new ArrayList<>();
+          for (SqlNode operand : callBinding.operands()) {
+            RelDataType type = SqlTypeUtil.deriveType(callBinding, operand);
+            argTypes.add(type);
+          }
+          TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+          RelDataType commonType = typeCoercion.getWiderTypeFor(argTypes, true);
+          if (null != commonType) {
+            boolean coerced = typeCoercion.coalesceCoercion(callBinding);
+            if (coerced) {
+              return SqlTypeUtil.deriveType(callBinding);
+            }
+          }
+          throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
+        }
+      }
+      return null;
+    });
   }
 }

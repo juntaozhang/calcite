@@ -556,10 +556,28 @@ public abstract class SqlOperator {
    * {@link SqlCall})
    * @return inferred return type
    */
-  public RelDataType inferReturnType(
-      SqlOperatorBinding opBinding) {
+  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    return inferReturnType(opBinding, () -> null);
+  }
+
+  /**
+   * Infers the return type of an invocation of this operator.
+   * This method cannot be overridden by subclasses.
+   * To customize behavior, pls override {@link #inferReturnType(SqlOperatorBinding)}.
+   *
+   * @param opBinding description of invocation (not necessarily a
+   * {@link SqlCall})
+   * @param returnTypeSupplier subclasses need to implement this method as required
+   * @return inferred return type
+   */
+  protected final RelDataType inferReturnType(
+      SqlOperatorBinding opBinding, Supplier<RelDataType> returnTypeSupplier) {
     if (returnTypeInference != null) {
       RelDataType returnType = returnTypeInference.inferReturnType(opBinding);
+      if (returnType == null) {
+        returnType = returnTypeSupplier.get();
+      }
+
       if (returnType == null) {
         throw new IllegalArgumentException("Cannot infer return type for "
             + opBinding.getOperator() + "; operand types: "

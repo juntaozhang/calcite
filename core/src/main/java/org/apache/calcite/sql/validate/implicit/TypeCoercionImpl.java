@@ -19,6 +19,7 @@ package org.apache.calcite.sql.validate.implicit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
@@ -383,7 +384,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * CASE and COALESCE type coercion, collect all the branches types including then
+   * CASE WHEN type coercion, collect all the branches types including then
    * operands and else operands to find a common type, then cast the operands to the common type
    * when needed.
    */
@@ -418,6 +419,24 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
             || coerced;
       }
       return coerced;
+    }
+    return false;
+  }
+
+  /**
+   * COALESCE type coercion, collect all the branches types to find a common type,
+   * then cast the operands to the common type when needed.
+   */
+  public boolean coalesceCoercion(SqlCallBinding callBinding) {
+    SqlBasicCall call = (SqlBasicCall) callBinding.getCall();
+    List<RelDataType> argTypes = new ArrayList<RelDataType>();
+    SqlValidatorScope scope = getScope(callBinding);
+    for (SqlNode node : callBinding.operands()) {
+      argTypes.add(validator.deriveType(scope, node));
+    }
+    RelDataType widerType = getWiderTypeFor(argTypes, true);
+    if (null != widerType) {
+      return coerceOperandsType(scope, call, widerType);
     }
     return false;
   }
