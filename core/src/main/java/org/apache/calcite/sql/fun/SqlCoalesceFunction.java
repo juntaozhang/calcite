@@ -28,11 +28,15 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -93,30 +97,49 @@ public class SqlCoalesceFunction extends SqlFunction {
 
   @Override @NonNull public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
-    return inferReturnType(opBinding, () -> {
-      if (opBinding instanceof SqlCallBinding) {
-        SqlCallBinding callBinding = (SqlCallBinding) opBinding;
-        if (callBinding.isTypeCoercionEnabled()) {
-          List<RelDataType> argTypes = new ArrayList<>();
-          for (SqlNode operand : callBinding.operands()) {
-            RelDataType type = SqlTypeUtil.deriveType(callBinding, operand);
-            argTypes.add(type);
-          }
-          TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
-          RelDataType commonType = typeCoercion.getWiderTypeFor(argTypes, true);
-          if (null != commonType) {
-            boolean coerced = typeCoercion.caseWhenCoercion(callBinding);
-            if (coerced) {
-              return SqlTypeUtil.deriveType(callBinding);
-            }
-          }
-          throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
+    if (returnTypeInference == null) {
+      throw Util.needToImplement(this);
+    }
+
+    RelDataType returnType = returnTypeInference.inferReturnType(opBinding);
+    if (returnType == null
+        && opBinding instanceof SqlCallBinding
+        && ((SqlCallBinding) opBinding).isTypeCoercionEnabled()) {
+      SqlCallBinding callBinding = (SqlCallBinding) opBinding;
+      List<RelDataType> argTypes = new ArrayList<>();
+      for (SqlNode operand : callBinding.operands()) {
+        RelDataType type = SqlTypeUtil.deriveType(callBinding, operand);
+        argTypes.add(type);
+      }
+      TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+      RelDataType commonType = typeCoercion.getWiderTypeFor(argTypes, true);
+      if (null != commonType) {
+        boolean coerced = typeCoercion.caseWhenCoercion(callBinding);
+        if (coerced) {
+          return SqlTypeUtil.deriveType(callBinding);
         }
       }
+      throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
+    }
 
-      throw new IllegalArgumentException("Cannot infer return type for "
-          + opBinding.getOperator() + "; operand types: "
-          + opBinding.collectOperandTypes());
-    });
+    if (returnType == null) {
+      throw new IllegalArgumentException(
+          "Cannot infer return type for " + opBinding.getOperator() + "; operand types: "
+              + opBinding.collectOperandTypes());
+    }
+
+    if (operandTypeInference != null && opBinding instanceof SqlCallBinding) {
+      final SqlCallBinding callBinding = (SqlCallBinding) opBinding;
+      final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+      if (operandTypes.stream().anyMatch(t -> t.getSqlTypeName() == SqlTypeName.ANY)) {
+        final RelDataType[] operandTypes2 = operandTypes.toArray(new RelDataType[0]);
+        operandTypeInference.inferOperandTypes(callBinding, returnType, operandTypes2);
+        ((SqlValidatorImpl) callBinding.getValidator())
+            .callToOperandTypesMap
+            .put(callBinding.getCall(), ImmutableList.copyOf(operandTypes2));
+      }
+    }
+
+    return returnType;
   }
 }

@@ -114,10 +114,10 @@ public abstract class SqlOperator {
   private final int rightPrec;
 
   /** Used to infer the return type of a call to this operator. */
-  private final @Nullable SqlReturnTypeInference returnTypeInference;
+  protected final @Nullable SqlReturnTypeInference returnTypeInference;
 
   /** Used to infer types of unknown operands. */
-  private final @Nullable SqlOperandTypeInference operandTypeInference;
+  protected final @Nullable SqlOperandTypeInference operandTypeInference;
 
   /** Used to validate operand types. */
   private final @Nullable SqlOperandTypeChecker operandTypeChecker;
@@ -556,30 +556,14 @@ public abstract class SqlOperator {
    * {@link SqlCall})
    * @return inferred return type
    */
-  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    return inferReturnType(opBinding, () -> {
-      throw new IllegalArgumentException("Cannot infer return type for "
-          + opBinding.getOperator() + "; operand types: "
-          + opBinding.collectOperandTypes());
-    });
-  }
-
-  /**
-   * Infers the return type of an invocation of this operator.
-   * This method cannot be overridden by subclasses.
-   * To customize behavior, pls override {@link #inferReturnType(SqlOperatorBinding)}.
-   *
-   * @param opBinding description of invocation (not necessarily a
-   * {@link SqlCall})
-   * @param returnTypeSupplier subclasses need to implement this method as required
-   * @return inferred return type
-   */
-  protected final RelDataType inferReturnType(
-      SqlOperatorBinding opBinding, Supplier<RelDataType> returnTypeSupplier) {
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
     if (returnTypeInference != null) {
       RelDataType returnType = returnTypeInference.inferReturnType(opBinding);
       if (returnType == null) {
-        returnType = returnTypeSupplier.get();
+        throw new IllegalArgumentException("Cannot infer return type for "
+            + opBinding.getOperator() + "; operand types: "
+            + opBinding.collectOperandTypes());
       }
 
       if (operandTypeInference != null
