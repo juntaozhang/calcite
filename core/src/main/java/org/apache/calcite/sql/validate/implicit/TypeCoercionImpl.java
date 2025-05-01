@@ -384,11 +384,16 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * CASE WHEN type coercion, collect all the branches types including then
+   * CASE WHEN and COALESCE type coercion, collect all the branches types including then
    * operands and else operands to find a common type, then cast the operands to the common type
    * when needed.
    */
   @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
+    if (!(callBinding.getCall() instanceof SqlCase)) {
+      // For sql statement like: `coalesce(a, b, c)`
+      return coalesceCoercion(callBinding);
+    }
+
     // For sql statement like:
     // `case when ... then (a, b, c) when ... then (d, e, f) else (g, h, i)`
     // an exception throws when entering this method.
@@ -427,7 +432,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * COALESCE type coercion, collect all the branches types to find a common type,
    * then cast the operands to the common type when needed.
    */
-  public boolean coalesceCoercion(SqlCallBinding callBinding) {
+  private boolean coalesceCoercion(SqlCallBinding callBinding) {
     SqlBasicCall call = (SqlBasicCall) callBinding.getCall();
     List<RelDataType> argTypes = new ArrayList<RelDataType>();
     SqlValidatorScope scope = getScope(callBinding);

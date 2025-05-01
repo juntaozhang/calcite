@@ -127,20 +127,12 @@ public interface TypeCoercion {
   boolean binaryComparisonCoercion(SqlCallBinding binding);
 
   /**
-   * Coerces CASE WHEN statement branches to one common type.
+   * Coerces CASE WHEN and COALESCE statement branches to one common type.
    *
    * <p>Rules: Find common type for all the then operands and else operands,
    * then try to coerce the then/else operands to the type if needed.
    */
   boolean caseWhenCoercion(SqlCallBinding binding);
-
-  /**
-   * Coerces COALESCE statement to one common type.
-   *
-   * <p>Rules: Find common type for all the operands,
-   * then try to coerce the operands to the type if needed.
-   */
-  boolean coalesceCoercion(SqlCallBinding binding);
 
   /**
    * Type coercion with inferred type from passed in arguments and the

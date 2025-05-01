@@ -103,7 +103,7 @@ public class SqlCoalesceFunction extends SqlFunction {
           TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
           RelDataType commonType = typeCoercion.getWiderTypeFor(argTypes, true);
           if (null != commonType) {
-            boolean coerced = typeCoercion.coalesceCoercion(callBinding);
+            boolean coerced = typeCoercion.caseWhenCoercion(callBinding);
             if (coerced) {
               return SqlTypeUtil.deriveType(callBinding);
             }
