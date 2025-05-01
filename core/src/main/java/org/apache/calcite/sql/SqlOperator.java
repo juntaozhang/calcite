@@ -114,10 +114,10 @@ public abstract class SqlOperator {
   private final int rightPrec;
 
   /** Used to infer the return type of a call to this operator. */
-  protected final @Nullable SqlReturnTypeInference returnTypeInference;
+  private final @Nullable SqlReturnTypeInference returnTypeInference;
 
   /** Used to infer types of unknown operands. */
-  protected final @Nullable SqlOperandTypeInference operandTypeInference;
+  private final @Nullable SqlOperandTypeInference operandTypeInference;
 
   /** Used to validate operand types. */
   private final @Nullable SqlOperandTypeChecker operandTypeChecker;
