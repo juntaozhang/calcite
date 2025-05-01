@@ -557,7 +557,11 @@ public abstract class SqlOperator {
    * @return inferred return type
    */
   public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    return inferReturnType(opBinding, () -> null);
+    return inferReturnType(opBinding, () -> {
+      throw new IllegalArgumentException("Cannot infer return type for "
+          + opBinding.getOperator() + "; operand types: "
+          + opBinding.collectOperandTypes());
+    });
   }
 
   /**
@@ -576,12 +580,6 @@ public abstract class SqlOperator {
       RelDataType returnType = returnTypeInference.inferReturnType(opBinding);
       if (returnType == null) {
         returnType = returnTypeSupplier.get();
-      }
-
-      if (returnType == null) {
-        throw new IllegalArgumentException("Cannot infer return type for "
-            + opBinding.getOperator() + "; operand types: "
-            + opBinding.collectOperandTypes());
       }
 
       if (operandTypeInference != null

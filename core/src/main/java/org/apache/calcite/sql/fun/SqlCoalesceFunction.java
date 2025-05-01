@@ -111,7 +111,10 @@ public class SqlCoalesceFunction extends SqlFunction {
           throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
         }
       }
-      return null;
+
+      throw new IllegalArgumentException("Cannot infer return type for "
+          + opBinding.getOperator() + "; operand types: "
+          + opBinding.collectOperandTypes());
     });
   }
 }
