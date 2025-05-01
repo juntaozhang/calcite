@@ -34,6 +34,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,7 +91,7 @@ public class SqlCoalesceFunction extends SqlFunction {
     return SqlCase.createSwitched(pos, null, whenList, thenList, elseExpr);
   }
 
-  @Override public RelDataType inferReturnType(
+  @Override @NonNull public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     return inferReturnType(opBinding, () -> {
       if (opBinding instanceof SqlCallBinding) {
