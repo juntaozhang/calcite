@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -38,6 +39,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -93,10 +96,6 @@ public class SqlCoalesceFunction extends SqlFunction {
 
   @Override @NonNull public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
-    if (getReturnTypeInference() == null) {
-      throw Util.needToImplement(this);
-    }
-
     RelDataType returnType = getReturnTypeInference().inferReturnType(opBinding);
     if (returnType == null
         && opBinding instanceof SqlCallBinding
@@ -125,5 +124,9 @@ public class SqlCoalesceFunction extends SqlFunction {
     }
 
     return returnType;
+  }
+
+  @Override public SqlReturnTypeInference getReturnTypeInference() {
+    return requireNonNull(super.getReturnTypeInference(), "returnTypeInference");
   }
 }
