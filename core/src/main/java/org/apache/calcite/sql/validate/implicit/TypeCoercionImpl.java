@@ -19,7 +19,6 @@ package org.apache.calcite.sql.validate.implicit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
@@ -383,20 +382,27 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     return false;
   }
 
+  /**
+   * Coerces CASE WHEN, COALESCE and NULLIF statement branches to a unified type.
+   *
+   * @deprecated Use {@link #caseOrEquivalentCoercion} instead.
+   */
   @Deprecated @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
     return caseOrEquivalentCoercion(callBinding);
   }
 
   /**
-   * CASE WHEN and COALESCE type coercion, collect all the branches types including then
-   * operands and else operands to find a common type, then cast the operands to the common type
-   * when needed.
+   * Coerces CASE WHEN, COALESCE and NULLIF statement branches to a unified type.
    */
   @Override public boolean caseOrEquivalentCoercion(SqlCallBinding callBinding) {
-    if (!(callBinding.getCall() instanceof SqlCase)
-        && callBinding.getCall().getKind() == SqlKind.COALESCE) {
+    if (callBinding.getCall().getKind() == SqlKind.COALESCE) {
       // For sql statement like: `coalesce(a, b, c)`
       return coalesceCoercion(callBinding);
+    }
+
+    if (callBinding.getCall().getKind() == SqlKind.NULLIF) {
+      // For sql statement like: `nullif(a, b)`
+      return nullifCoercion(callBinding);
     }
 
     // For sql statement like:
@@ -438,17 +444,27 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * then cast the operands to the common type when needed.
    */
   private boolean coalesceCoercion(SqlCallBinding callBinding) {
-    SqlBasicCall call = (SqlBasicCall) callBinding.getCall();
-    List<RelDataType> argTypes = new ArrayList<RelDataType>();
+    List<RelDataType> argTypes = new ArrayList<>();
     SqlValidatorScope scope = getScope(callBinding);
     for (SqlNode node : callBinding.operands()) {
       argTypes.add(validator.deriveType(scope, node));
     }
     RelDataType widerType = getWiderTypeFor(argTypes, true);
     if (null != widerType) {
-      return coerceOperandsType(scope, call, widerType);
+      return coerceOperandsType(scope, callBinding.getCall(), widerType);
     }
     return false;
+  }
+
+  /**
+   * NULLIF type coercion, cast the second operand type to the first operand type when needed.
+   */
+  private boolean nullifCoercion(SqlCallBinding callBinding) {
+    SqlCall call = callBinding.getCall();
+    assert call.getOperandList().size() == 2;
+    SqlValidatorScope scope = getScope(callBinding);
+    RelDataType firstType = validator.deriveType(scope, call.getOperandList().get(0));
+    return coerceOperandsType(scope, call, firstType);
   }
 
   /**

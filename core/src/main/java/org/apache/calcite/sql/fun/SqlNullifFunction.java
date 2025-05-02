@@ -16,19 +16,29 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * The <code>NULLIF</code> function.
@@ -69,5 +79,30 @@ public class SqlNullifFunction extends SqlFunction {
     thenList.add(SqlLiteral.createNull(SqlParserPos.ZERO));
     return SqlCase.createSwitched(pos, operands.get(0), whenList, thenList,
         SqlNode.clone(operands.get(0)));
+  }
+
+  @Override @NonNull public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    RelDataType returnType = getReturnTypeInference().inferReturnType(opBinding);
+    if (opBinding instanceof SqlCallBinding
+        && ((SqlCallBinding) opBinding).isTypeCoercionEnabled()) {
+      SqlCallBinding callBinding = (SqlCallBinding) opBinding;
+      TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+      boolean coerced = typeCoercion.caseOrEquivalentCoercion(callBinding);
+      if (coerced) {
+        return SqlTypeUtil.deriveType(callBinding);
+      }
+    }
+    if (returnType == null) {
+      throw new IllegalArgumentException(
+          "Cannot infer return type for " + opBinding.getOperator() + "; operand types: "
+              + opBinding.collectOperandTypes());
+    }
+
+    return returnType;
+  }
+
+  @Override public SqlReturnTypeInference getReturnTypeInference() {
+    return requireNonNull(super.getReturnTypeInference(), "returnTypeInference");
   }
 }
