@@ -389,7 +389,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * when needed.
    */
   @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
-    if (!(callBinding.getCall() instanceof SqlCase)) {
+    if (!(callBinding.getCall() instanceof SqlCase)
+        && callBinding.getCall().getKind() == SqlKind.COALESCE) {
       // For sql statement like: `coalesce(a, b, c)`
       return coalesceCoercion(callBinding);
     }
