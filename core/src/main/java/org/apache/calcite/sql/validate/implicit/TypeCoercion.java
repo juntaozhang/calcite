@@ -132,7 +132,14 @@ public interface TypeCoercion {
    * <p>Rules: Find common type for all the then operands and else operands,
    * then try to coerce the then/else operands to the type if needed.
    */
-  boolean caseWhenCoercion(SqlCallBinding binding);
+  boolean caseOrEquivalentCoercion(SqlCallBinding binding);
+
+  /**
+   * Coerces CASE WHEN and COALESCE statement branches to one common type.
+   *
+   * @deprecated Use {@link #caseOrEquivalentCoercion} instead.
+   */
+  @Deprecated boolean caseWhenCoercion(SqlCallBinding binding);
 
   /**
    * Type coercion with inferred type from passed in arguments and the

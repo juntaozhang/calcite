@@ -383,12 +383,16 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     return false;
   }
 
+  @Deprecated @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
+    return caseOrEquivalentCoercion(callBinding);
+  }
+
   /**
    * CASE WHEN and COALESCE type coercion, collect all the branches types including then
    * operands and else operands to find a common type, then cast the operands to the common type
    * when needed.
    */
-  @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
+  @Override public boolean caseOrEquivalentCoercion(SqlCallBinding callBinding) {
     if (!(callBinding.getCall() instanceof SqlCase)
         && callBinding.getCall().getKind() == SqlKind.COALESCE) {
       // For sql statement like: `coalesce(a, b, c)`
