@@ -706,9 +706,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("DECIMAL(5, 2)");
     expr("nullif(DATE '2020-01-01', '2020-01-01')")
         .columnType("DATE");
+    expr("nullif('2020-01-01', DATE '2020-01-01')")
+        .columnType("CHAR(10)");
     expr("nullif(DATE '2020-01-01', '2020-01-01')")
         .withValidatorConfig(c -> c.withCallRewrite(false))
         .columnType("DATE");
+    expr("nullif('2020-01-01', DATE '2020-01-01')")
+        .withValidatorConfig(c -> c.withCallRewrite(false))
+        .columnType("CHAR(10)");
     wholeExpr("nullif(1,2,3)")
         .fails("Invalid number of arguments to function 'NULLIF'. Was "
             + "expecting 2 arguments");

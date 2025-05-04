@@ -383,28 +383,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Coerces CASE WHEN, COALESCE and NULLIF statement branches to a unified type.
-   *
-   * @deprecated Use {@link #caseOrEquivalentCoercion} instead.
+   * CASE WHEN type coercion, collect all the branches types including then
+   * operands and else operands to find a common type, then cast the operands to the common type
+   * when needed.
    */
-  @Deprecated @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
-    return caseOrEquivalentCoercion(callBinding);
-  }
-
-  /**
-   * Coerces CASE WHEN, COALESCE and NULLIF statement branches to a unified type.
-   */
-  @Override public boolean caseOrEquivalentCoercion(SqlCallBinding callBinding) {
-    if (callBinding.getCall().getKind() == SqlKind.COALESCE) {
-      // For sql statement like: `coalesce(a, b, c)`
-      return coalesceCoercion(callBinding);
-    }
-
-    if (callBinding.getCall().getKind() == SqlKind.NULLIF) {
-      // For sql statement like: `nullif(a, b)`
-      return nullifCoercion(callBinding);
-    }
-
+  @SuppressWarnings("deprecation")
+  public boolean caseWhenCoercion(SqlCallBinding callBinding) {
     // For sql statement like:
     // `case when ... then (a, b, c) when ... then (d, e, f) else (g, h, i)`
     // an exception throws when entering this method.
@@ -440,6 +424,23 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
+   * Coerces CASE WHEN and COALESCE statement branches to a unified type.
+   * NULLIF does not need coercion.
+   */
+  @Override public boolean caseOrEquivalentCoercion(SqlCallBinding callBinding) {
+    if (callBinding.getCall().getKind() == SqlKind.COALESCE) {
+      // For sql statement like: `coalesce(a, b, c)`
+      return coalesceCoercion(callBinding);
+    } else if (callBinding.getCall().getKind() == SqlKind.NULLIF) {
+      // For sql statement like: `nullif(a, b)`
+      return false;
+    } else {
+      assert callBinding.getCall() instanceof SqlCase;
+      return caseWhenCoercion(callBinding);
+    }
+  }
+
+  /**
    * COALESCE type coercion, collect all the branches types to find a common type,
    * then cast the operands to the common type when needed.
    */
@@ -454,17 +455,6 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       return coerceOperandsType(scope, callBinding.getCall(), widerType);
     }
     return false;
-  }
-
-  /**
-   * NULLIF type coercion, cast the second operand type to the first operand type when needed.
-   */
-  private boolean nullifCoercion(SqlCallBinding callBinding) {
-    SqlCall call = callBinding.getCall();
-    assert call.getOperandList().size() == 2;
-    SqlValidatorScope scope = getScope(callBinding);
-    RelDataType firstType = validator.deriveType(scope, call.getOperandList().get(0));
-    return coerceOperandsType(scope, call, firstType);
   }
 
   /**

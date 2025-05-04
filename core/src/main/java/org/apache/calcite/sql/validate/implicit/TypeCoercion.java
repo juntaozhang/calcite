@@ -127,14 +127,14 @@ public interface TypeCoercion {
   boolean binaryComparisonCoercion(SqlCallBinding binding);
 
   /**
-   * Coerces CASE WHEN, COALESCE and NULLIF statement branches to a unified type.
+   * Coerces CASE WHEN statement branches to one common type.
    *
    * @deprecated Use {@link #caseOrEquivalentCoercion} instead.
    */
   @Deprecated boolean caseWhenCoercion(SqlCallBinding binding);
 
   /**
-   * Coerces CASE WHEN, COALESCE and NULLIF statement branches to a unified type.
+   * Type coercion in CASE WHEN, COALESCE, and NULLIF.
    *
    * <p>Rules:
    * <ol>
@@ -146,7 +146,7 @@ public interface TypeCoercion {
    *     COALESCE collect all the branches types to find a common type,
    *     then cast the operands to the common type when needed.</li>
    *   <li>
-   *     NULLIF cast the second operand type to the first operand type when needed.</li>
+   *     NULLIF return type is the first operand type, with no coercion applied.</li>
    * </ol>
    */
   boolean caseOrEquivalentCoercion(SqlCallBinding binding);
