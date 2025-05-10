@@ -425,7 +425,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
 
   /**
    * Coerces CASE WHEN and COALESCE statement branches to a unified type.
-   * NULLIF does not need coercion.
+   * NULLIF returns the same type as the first operand without return type coercion.
    */
   @Override public boolean caseOrEquivalentCoercion(SqlCallBinding callBinding) {
     if (callBinding.getCall().getKind() == SqlKind.COALESCE) {

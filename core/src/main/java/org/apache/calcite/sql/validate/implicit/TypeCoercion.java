@@ -146,7 +146,9 @@ public interface TypeCoercion {
    *     COALESCE collect all the branches types to find a common type,
    *     then cast the operands to the common type when needed.</li>
    *   <li>
-   *     NULLIF return type is the first operand type, with no coercion applied.</li>
+   *     NULLIF returns the first operand if the two operands are not equal,
+   *     otherwise it returns a null value of the type of the first operand,
+   *     without return type coercion.</li>
    * </ol>
    */
   boolean caseOrEquivalentCoercion(SqlCallBinding binding);
